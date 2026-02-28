@@ -1,0 +1,84 @@
+﻿{
+  "testEnvironment": {
+    "network": {
+      "name": "functional-tests-network"
+    },
+    "portMapping": {
+      "randomHostPorts": true
+    },
+    "services": {
+      "mongodb": {
+        "type": "mongodb",
+        "image": "mongo:7.0",
+        "networkAlias": "mongo",
+        "ports": {
+          "container": 27017,
+          "host": 27017
+        },
+        "environmentVariables": {
+          "MONGO_INITDB_ROOT_USERNAME": "admin",
+          "MONGO_INITDB_ROOT_PASSWORD": "password"
+        }
+      },
+      "mssql": {
+        "type": "mssql",
+        "image": "mcr.microsoft.com/mssql/server:2022-latest",
+        "networkAlias": "sqlserver",
+        "ports": {
+          "container": 1433,
+          "host": 1433
+        },
+        "environmentVariables": {
+          "ACCEPT_EULA": "Y",
+          "SA_PASSWORD": "Strong!Passw0rd"
+        }
+      },
+      "azurite": {
+        "type": "azurite",
+        "image": "mcr.microsoft.com/azure-storage/azurite:latest",
+        "networkAlias": "azurite",
+        "ports": {
+          "container": 10000,
+          "host": 10000
+        }
+      },
+      "wiremock": {
+        "type": "wiremock",
+        "image": "sheyenrath/wiremock.net:latest",
+        "networkAlias": "wiremock",
+        "ports": {
+          "container": 8080,
+          "host": 8080
+        }
+      },
+      "servicebus": {
+        "type": "servicebus-emulator",
+        "image": "mcr.microsoft.com/azure-messaging/servicebus-emulator:latest",
+        "networkAlias": "servicebus",
+        "ports": {
+          "container": 5672,
+          "host": 5672
+        },
+        "dependsOn": [ "mssql" ]
+      }
+    },
+    "applicationUnderTest": {
+      "image": "mycompany/myapp:latest",
+      "networkAlias": "app",
+      "ports": {
+        "container": 8080,
+        "host": 5000
+      },
+      "dependsOn": [ "mongodb", "mssql", "azurite", "wiremock", "servicebus" ],
+      "environmentVariables": {
+        "ConnectionStrings__MongoDb": "{{mongodb.connectionString}}",
+        "ConnectionStrings__SqlServer": "{{mssql.connectionString}}",
+        "ConnectionStrings__AzureBlobStorage": "{{azurite.connectionString}}",
+        "ConnectionStrings__ServiceBus": "{{servicebus.connectionString}}",
+        "ExternalApis__PaymentGateway": "http://wiremock:8080",
+        "ASPNETCORE_ENVIRONMENT": "Testing"
+      }
+    }
+  }
+}
+

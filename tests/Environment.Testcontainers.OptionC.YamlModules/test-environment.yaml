@@ -1,0 +1,96 @@
+﻿# Functional test environment definition
+# Syntax intentionally mirrors docker-compose for familiarity
+
+networks:
+  functional-tests:
+    driver: bridge
+
+settings:
+  random_host_ports: true
+  health_defaults:
+    interval: 5s
+    timeout: 10s
+    retries: 10
+    start_period: 15s
+
+services:
+  mongodb:
+    type: mongodb
+    image: "mongo:7.0"
+    network_alias: mongo
+    ports:
+      - host: 27017
+        container: 27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+
+  sqlserver:
+    type: mssql
+    image: "mcr.microsoft.com/mssql/server:2022-latest"
+    network_alias: sqlserver
+    ports:
+      - host: 1433
+        container: 1433
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Strong!Passw0rd"
+
+  azurite:
+    type: azurite
+    image: "mcr.microsoft.com/azure-storage/azurite:latest"
+    network_alias: azurite
+    ports:
+      - host: 10000
+        container: 10000
+      - host: 10001
+        container: 10001
+      - host: 10002
+        container: 10002
+
+  wiremock:
+    type: wiremock
+    image: "sheyenrath/wiremock.net:latest"
+    network_alias: wiremock
+    ports:
+      - host: 8080
+        container: 8080
+
+  servicebus:
+    type: servicebus-emulator
+    image: "mcr.microsoft.com/azure-messaging/servicebus-emulator:latest"
+    network_alias: servicebus
+    ports:
+      - host: 5672
+        container: 5672
+    depends_on:
+      sqlserver:
+        condition: healthy
+
+  # ── Application Under Test (uncomment when a real image is available) ──
+  # app:
+  #   type: generic
+  #   image: "mycompany/myapp:latest"
+  #   network_alias: app
+  #   ports:
+  #     - host: 5000
+  #       container: 8080
+  #   depends_on:
+  #     mongodb:
+  #       condition: healthy
+  #     sqlserver:
+  #       condition: healthy
+  #     azurite:
+  #       condition: healthy
+  #     wiremock:
+  #       condition: healthy
+  #     servicebus:
+  #       condition: healthy
+  #   environment:
+  #     ConnectionStrings__MongoDb: "${mongodb.connectionString}"
+  #     ConnectionStrings__SqlServer: "${mssql.connectionString}"
+  #     ConnectionStrings__AzureBlobStorage: "${azurite.connectionString}"
+  #     ConnectionStrings__ServiceBus: "${servicebus.connectionString}"
+  #     ExternalApis__PaymentGateway: "${wiremock.url}"
+  #     ASPNETCORE_ENVIRONMENT: "Testing"
+
